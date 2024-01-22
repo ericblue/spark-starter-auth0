@@ -56,6 +56,18 @@ auth0-issuer-uri=https://{YOUR-DOMAIN}/
 auth0-callback-url=https://localhost:3000/callback
 ```
 
+#### Auth0 Role support
+
+This app demonstrates retrieving role information from Auth0 via the Management API v2.  To enable this feature, you will need to create or edit hte default Auth0 API and setup as follows:
+
+
+Note: Support for getting back role information from the JWT claims is not yet implemented.
+
+- To enable Roles, go to User Management -> Roles and create a new role
+- Assign the role to a user by going to Users -> <user> -> Roles and click Assign Roles
+- Go to Applications -> APIs -> Auth0 Management API -> Machine to Machine Applications -> <your app> -> Toggle 'Authorized'
+- Expand the app and go under Permissions -> Enable the 'read:users', 'read:roles', 'read:role_members' and 'read:organization_member_roles' permissions
+
 #### Auth0 Libraries
 
 Note: the current Java examples for Servlets seem to be slightly dated using https://github.com/auth0/auth0-java-mvc-common

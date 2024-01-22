@@ -133,6 +133,8 @@ public class AuthController extends BaseController {
     public Object callback(Request request, Response response) {
         String code = request.queryParams("code");
 
+        DecodedJWT decodedToken = null;
+
         TokenRequest tokenRequest = auth.exchangeCode(code, config.getAuth0CallbackURL());
         logger.info("tokenRequest: " + Dumper.Dump(tokenRequest));
 
@@ -143,8 +145,9 @@ public class AuthController extends BaseController {
             String idToken = tokenHolderResponse.getBody().getIdToken();
             String accessToken = tokenHolderResponse.getBody().getAccessToken();
 
-            DecodedJWT decodedToken = JWT.decode(idToken);
-            logger.info("decodedToken: " + Dumper.Dump(decodedToken));
+            // TODO - Verify token + JWKS
+            decodedToken = JWT.decode(idToken);
+            logger.info("decodedToken auth: " + Dumper.Dump(decodedToken));
             decodedToken.getClaims().forEach((k,v) -> logger.info("key: " + k + " value: " + v));
 
 
@@ -163,21 +166,36 @@ public class AuthController extends BaseController {
             // List<String> roles = decodedToken.getClaim("roles").asList(String.class);
             // logger.info("roles: " + Dumper.Dump(roles));
 
+
+        } catch (Auth0Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Get user role info - make sure you application has access to the Auth0 Management API
+        // Applications -> APIs -> Auth0 Management API -> Machine to Machine Applications -> <your app> -> Enable
+
+        try {
+
             // Get token for management API - make sure the application has access to the Management API
+
+            logger.info("decodedToken authn: " + Dumper.Dump(decodedToken));
 
             TokenRequest mgmtTokenRequest = auth.requestToken("https://" + config.getAuth0IssuerURI() + "/api/v2/");
             TokenHolder holder = mgmtTokenRequest.execute().getBody();
             String mgmtAccessToken = holder.getAccessToken();
-            //logger.info("mgmtAccessToken: " + mgmtAccessToken);
+            logger.info("mgmtAccessToken: " + mgmtAccessToken);
 
             ManagementAPI mgmt = ManagementAPI.newBuilder( config.getAuth0IssuerURI(), mgmtAccessToken).build();
 
             // Get user info from Management API
-            //User user = mgmt.users().get(decodedToken.getClaim("sub").asString(), new UserFilter()).execute().getBody();
-            //logger.info("user: " + Dumper.Dump(user));
+            User user = mgmt.users().get(decodedToken.getClaim("sub").asString(), new UserFilter()).execute().getBody();
+            logger.info("user: " + Dumper.Dump(user));
+
+            logger.info("Getting role information for user: " + decodedToken.getClaim("sub").asString());
 
             // Get roles from Management API given a sub id - e.g. auth0|65a9e8733d944427580bbd32a
             RolesPage roles = mgmt.users().listRoles(decodedToken.getClaim("sub").asString(),null).execute().getBody();
+
 
             roles.getItems().forEach((r) -> logger.info("role: " + Dumper.Dump(r)));
 
@@ -189,14 +207,9 @@ public class AuthController extends BaseController {
                 request.session().attribute("userRoles", userRoles);
             }
 
-
         } catch (Auth0Exception e) {
-            throw new RuntimeException(e);
+            logger.info("Caught Auth0Exception: " + e.getMessage());
         }
-
-
-        // TODO - Verify token + JWKS
-
 
 
         response.redirect("/dashboard");
