@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+    <Appenders>
+
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd hh:mm:ss a} %-5p %c %M - %m%n"/>
+        </Console>
+
+
+        <RollingFile name="rolling" fileName="log/spark-starter.log"
+                     filePattern="log/${date:yyyy-MM}/spark-starter-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="%d{yyyy-MM-dd hh:mm:ss a} %-5p %c %M - %m%n"/>
+            <SizeBasedTriggeringPolicy size="100 MB"/>
+        </RollingFile>
+
+
+    </Appenders>
+
+    <Loggers>
+
+
+        <Logger name="log4j.rootLogger" level="warn">
+            <AppenderRef ref="rolling"/>
+            <AppenderRef ref="console" level="off"/>
+        </Logger>
+
+
+        <Logger name="com.ericblue.spark.auth0" level="info">
+            <AppenderRef ref="rolling"/>
+            <AppenderRef ref="console" level="off"/>
+        </Logger>
+
+        <Logger name="spark" level="warn">
+            <AppenderRef ref="rolling"/>
+        </Logger>
+
+        <Logger name="org.eclipse" level="warn">
+            <AppenderRef ref="rolling"/>
+        </Logger>
+
+        <Logger name="com.jayway.jsonpath" level="warn">
+            <AppenderRef ref="rolling"/>
+        </Logger>
+
+
+
+
+    </Loggers>
+
+</Configuration>

@@ -1,0 +1,15 @@
+test.config
+snyk-reports
+.ddcache
+/bin
+/.idea
+*.iml
+.settings
+.classpath
+.project
+target
+*.log*
+*.zip
+*.exe
+*.lck
+.DS_Store
