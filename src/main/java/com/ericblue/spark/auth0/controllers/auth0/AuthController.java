@@ -6,6 +6,8 @@ import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.json.auth.UserInfo;
+import com.auth0.json.mgmt.roles.Role;
+import com.auth0.json.mgmt.roles.RolesPage;
 import com.auth0.json.mgmt.users.User;
 import com.auth0.jwt.*;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -23,6 +25,7 @@ import spark.Request;
 import spark.Response;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static spark.Spark.*;
@@ -121,7 +124,7 @@ public class AuthController extends BaseController {
     public Object login(Request request, Response response) {
 
         String authorizeUrl = auth.authorizeUrl(config.getAuth0CallbackURL())
-                .withScope("openid profile email roles")
+                .withScope("openid profile email")
                 .build();
         response.redirect(authorizeUrl);
         return null;
@@ -159,6 +162,32 @@ public class AuthController extends BaseController {
 
             // List<String> roles = decodedToken.getClaim("roles").asList(String.class);
             // logger.info("roles: " + Dumper.Dump(roles));
+
+            // Get token for management API - make sure the application has access to the Management API
+
+            TokenRequest mgmtTokenRequest = auth.requestToken("https://" + config.getAuth0IssuerURI() + "/api/v2/");
+            TokenHolder holder = mgmtTokenRequest.execute().getBody();
+            String mgmtAccessToken = holder.getAccessToken();
+            //logger.info("mgmtAccessToken: " + mgmtAccessToken);
+
+            ManagementAPI mgmt = ManagementAPI.newBuilder( config.getAuth0IssuerURI(), mgmtAccessToken).build();
+
+            // Get user info from Management API
+            //User user = mgmt.users().get(decodedToken.getClaim("sub").asString(), new UserFilter()).execute().getBody();
+            //logger.info("user: " + Dumper.Dump(user));
+
+            // Get roles from Management API given a sub id - e.g. auth0|65a9e8733d944427580bbd32a
+            RolesPage roles = mgmt.users().listRoles(decodedToken.getClaim("sub").asString(),null).execute().getBody();
+
+            roles.getItems().forEach((r) -> logger.info("role: " + Dumper.Dump(r)));
+
+            if (roles.getItems().size() > 0) {
+                HashMap<String, Object> userRoles = new HashMap<>();
+                userRoles.put("id", roles.getItems().get(0).getId());
+                userRoles.put("name", roles.getItems().get(0).getName());
+                userRoles.put("description", roles.getItems().get(0).getDescription());
+                request.session().attribute("userRoles", userRoles);
+            }
 
 
         } catch (Auth0Exception e) {

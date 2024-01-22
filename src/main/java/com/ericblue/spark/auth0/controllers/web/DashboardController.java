@@ -31,7 +31,7 @@ public class DashboardController extends BaseController {
 
 			Map<String, Object> attributes = new HashMap<>();
 			attributes.put("userClaims", request.session().attribute("userClaims"));
-
+			attributes.put("userRoles", request.session().attribute("userRoles"));
 
 			return render(request, attributes, "dashboard.mst");
 

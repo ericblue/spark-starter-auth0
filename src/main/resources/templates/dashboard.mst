@@ -47,8 +47,8 @@
 <!-- Begin page content -->
 <main role="main" class="container">
     <h1 class="mt-5">Success - User Logged In</h1>
-    <p class="lead">{{userClaims}}</p>
-
+    <p class="lead"><b>User Claims</b>: {{userClaims}}</p>
+    <p class="lead"><b>User Roles</b>: {{userRoles}}</p>
 </main>
 
 <footer class="footer">
