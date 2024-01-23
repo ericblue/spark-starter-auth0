@@ -56,17 +56,6 @@ public class AuthController extends BaseController {
                 config.getAuth0ClientID(),
                 config.getAuth0ClientSecret());
 
-
-
-        // SEE: https://github.com/auth0/auth0-java/blob/master/EXAMPLES.md#verifying-an-id-token
-        //JwkProvider jwkProvider = new JwkProviderBuilder(config.getAuth0IssuerURI()).build();
-
-        // PEM public key available at your-domain.us.auth0.com/pem
-        //this.verifier = JWT.require(Algorithm.RSA256(auth0PublicKey)).build();
-
-        // Dynamic public key retrieval available from https://your-domain.us.auth0.com/.well-known/jwks.json
-        // TODO - implement dynamic public key retrieval and validation of JWT
-
         // Define routes - map URIs to method handlers
 
         this.defineRoutes();
@@ -133,10 +122,14 @@ public class AuthController extends BaseController {
     public Object callback(Request request, Response response) {
         String code = request.queryParams("code");
 
+        // Generate a token request given the supplied code
+
         DecodedJWT decodedToken = null;
 
         TokenRequest tokenRequest = auth.exchangeCode(code, config.getAuth0CallbackURL());
         logger.info("tokenRequest: " + Dumper.Dump(tokenRequest));
+
+        // Get the access token (not used) and ID token so this can be decoded as a JWT
 
         try {
             com.auth0.net.Response<TokenHolder> tokenHolderResponse = tokenRequest.execute();
@@ -148,23 +141,28 @@ public class AuthController extends BaseController {
             // TODO - Verify token + JWKS
             decodedToken = JWT.decode(idToken);
             logger.info("decodedToken auth: " + Dumper.Dump(decodedToken));
-            decodedToken.getClaims().forEach((k,v) -> logger.info("key: " + k + " value: " + v));
+            decodedToken.getClaims().forEach((k, v) -> logger.info("key: " + k + " value: " + v));
 
-
+            // Add all default claims to the request session
             request.session().attribute("userClaims", decodedToken.getClaims());
             request.session().attribute("loggedIn", true);
 
+            // Note, to get user role information as part of the JWT you need to add a custom Flow in Auth0
+            // See: https://auth0.com/docs/customize/actions/flows-and-triggers/login-flow#add-user-roles-to-id-and-access-tokens
+            // And https://community.auth0.com/t/unable-to-get-role-information-back-in-jwt-using-java-2-x-apis/125316
 
-            // TODO Figure out why roles are not being returned in claims
-            // See: https://community.auth0.com/t/unable-to-get-role-information-back-in-jwt-using-java-2-x-apis/125316
+            // Example:
+            // exports.onExecutePostLogin = async (event, api) => {
+            //  const namespace = "https://auth.mydomain.com";
+            //  if (event.authorization) {
+            //    api.idToken.setCustomClaim("preferred_username", event.user.email);
+            //    api.idToken.setCustomClaim(`${namespace}/roles`, event.authorization.roles);
+            //    api.accessToken.setCustomClaim(`${namespace}/roles`, event.authorization.roles);
+            //  }
+            //};
 
-            // Related? https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims
-            // or https://auth0.com/docs/customize/rules/create-rules
-            // and https://auth0.com/docs/manage-users/access-control/sample-use-cases-rules-with-authorization
-            // and https://auth0.com/docs/customize/actions/flows-and-triggers/login-flow#add-user-roles-to-id-and-access-tokens
-
-            // List<String> roles = decodedToken.getClaim("roles").asList(String.class);
-            // logger.info("roles: " + Dumper.Dump(roles));
+            // The return JWT custom claim key will be https://auth.mydomain.com/roles and value will be a list of
+            // roles (e.g. ["admin", "user"])
 
 
         } catch (Auth0Exception e) {
@@ -185,7 +183,7 @@ public class AuthController extends BaseController {
             String mgmtAccessToken = holder.getAccessToken();
             logger.info("mgmtAccessToken: " + mgmtAccessToken);
 
-            ManagementAPI mgmt = ManagementAPI.newBuilder( config.getAuth0IssuerURI(), mgmtAccessToken).build();
+            ManagementAPI mgmt = ManagementAPI.newBuilder(config.getAuth0IssuerURI(), mgmtAccessToken).build();
 
             // Get user info from Management API
             User user = mgmt.users().get(decodedToken.getClaim("sub").asString(), new UserFilter()).execute().getBody();
@@ -194,7 +192,7 @@ public class AuthController extends BaseController {
             logger.info("Getting role information for user: " + decodedToken.getClaim("sub").asString());
 
             // Get roles from Management API given a sub id - e.g. auth0|65a9e8733d944427580bbd32a
-            RolesPage roles = mgmt.users().listRoles(decodedToken.getClaim("sub").asString(),null).execute().getBody();
+            RolesPage roles = mgmt.users().listRoles(decodedToken.getClaim("sub").asString(), null).execute().getBody();
 
 
             roles.getItems().forEach((r) -> logger.info("role: " + Dumper.Dump(r)));
@@ -222,7 +220,6 @@ public class AuthController extends BaseController {
         response.redirect("/");
         return null;
     }
-
 
 
 }

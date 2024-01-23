@@ -76,10 +76,6 @@ and 1.x versions of the Auth0 libraries.
 Additionally, since this project needed full control over enabling Auth0 with Spark controllers, the latest 2.x versions
 of the Auth0 libraries are used - https://github.com/auth0/auth0-java
 
-TODO
-
-- [ ] Get role information from Auth0 via JWT Claims
-- [ ] Verify JWT token signature
 
 ## Development Environment
 
