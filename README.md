@@ -58,7 +58,7 @@ auth0-callback-url=https://localhost:3000/callback
 
 #### Auth0 Role support
 
-This app demonstrates retrieving role information from Auth0 via the Management API v2.  To enable this feature, you will need to create or edit hte default Auth0 API and setup as follows:
+This app demonstrates retrieving role information from Auth0 via the Management API v2.  To enable this feature, you will need to create or edit the default Auth0 API and setup as follows:
 
 
 Note: Support for getting back role information from the JWT claims is not yet implemented.
